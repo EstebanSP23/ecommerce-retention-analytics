@@ -1,8 +1,6 @@
 # Customer Retention & Revenue Sustainability Analysis  
 ### Production-Style SQL Analytics Pipeline (PostgreSQL + Power BI)
 
----
-
 ## 1. Business Problem
 
 E-commerce companies must balance **customer acquisition and retention** to achieve sustainable revenue growth.
@@ -16,8 +14,6 @@ This project focuses on:
 - Performing cohort analysis to measure monthly retention
 
 The goal is to build a **production-style analytics system**, not just a dashboard.
-
----
 
 ## 2. Architecture Overview
 
@@ -46,8 +42,6 @@ The project follows a layered data architecture:
 - RFM segmentation
 - Marketing efficiency metrics
 
----
-
 ## 3. Dataset Description
 
 Source: Kaggle – [Marketing Insights for E-Commerce Company](https://www.kaggle.com/datasets/rishikumarrajvansh/marketing-insights-for-e-commerce-company/data)
@@ -72,8 +66,6 @@ Distinct customers:
 Distinct transactions:  
 **25,061**
 
----
-
 ## 4. Data Grain
 
 The primary grain of the dataset:
@@ -83,8 +75,6 @@ The primary grain of the dataset:
 A transaction may contain multiple line items.
 
 This distinction is critical to prevent revenue double-counting.
-
----
 
 ## 5. Key Business Metrics (Planned)
 
@@ -99,8 +89,6 @@ This distinction is critical to prevent revenue double-counting.
 - Discount Impact Analysis
 - RFM Segmentation (Descriptive)
 
----
-
 ## 6. Invoice Value Formula
 
 Invoice Value is computed at line level as:
@@ -108,8 +96,6 @@ Invoice Value is computed at line level as:
 Invoice Value = ((Quantity × Avg_Price) × (1 - Discount_pct) × (1 + GST)) + Delivery_Charges
 
 This logic is implemented in the transformation layer to ensure consistency.
-
----
 
 ## 7. Design Principles
 
@@ -124,16 +110,12 @@ This project emphasizes:
 
 The objective is to simulate how analytics systems are built in real companies.
 
----
-
 ## 8. Tools Used
 
 - PostgreSQL (Data modeling & SQL transformations)
 - pgAdmin 4
 - Power BI (Visualization layer)
 - GitHub (Documentation & version control)
-
----
 
 ## 9. Project Status
 
@@ -142,8 +124,6 @@ The objective is to simulate how analytics systems are built in real companies.
 🔄 Mart schema modeling in progress  
 🔄 KPI views under development  
 🔄 Dashboard development upcoming  
-
----
 
 ## 10. Future Enhancements
 
