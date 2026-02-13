@@ -3,7 +3,7 @@
 -- Purpose: Build cleaned/typed staging tables from raw layer
 -- ============================================================
 
--- ---------- stg_online_sales ----------
+------------ stg_online_sales ------------
 DROP TABLE IF EXISTS staging.stg_online_sales;
 
 CREATE TABLE staging.stg_online_sales AS
@@ -37,7 +37,7 @@ SELECT
 FROM raw.online_sales;
 
 
--- ---------- stg_customers_data ----------
+------------ stg_customers_data ------------
 DROP TABLE IF EXISTS staging.stg_customer_data;
 
 CREATE TABLE staging.stg_customer_data AS
@@ -55,7 +55,7 @@ SELECT
 FROM raw.customers_data;
 
 
--- ---------- stg_discount_coupon ----------
+------------ stg_discount_coupon ------------
 DROP TABLE IF EXISTS staging.stg_discount_coupon;
 
 CREATE TABLE staging.stg_discount_coupon AS
@@ -67,7 +67,7 @@ SELECT
 FROM raw.discount_coupon;
 
 
--- ---------- stg_tax_amount ----------
+------------ stg_tax_amount ------------
 DROP TABLE IF EXISTS staging.stg_tax_amount;
 
 CREATE TABLE staging.stg_tax_amount AS
@@ -77,7 +77,7 @@ SELECT
 FROM raw.tax_amount;
 
 
--- ---------- stg_marketing_spend ----------
+------------ stg_marketing_spend ------------
 DROP TABLE IF EXISTS staging.stg_marketing_spend;
 
 CREATE TABLE staging.stg_marketing_spend AS
