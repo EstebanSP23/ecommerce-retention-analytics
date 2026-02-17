@@ -7,182 +7,226 @@
 
 E-commerce companies must balance **customer acquisition and retention** to achieve sustainable revenue growth.
 
-This project focuses on:
+While acquisition drives short-term revenue spikes, long-term profitability depends on:
 
-- Measuring customer retention and repeat purchase behavior
-- Analyzing revenue contribution from new vs existing customers
-- Evaluating discount and marketing impact on revenue
-- Understanding customer lifetime value (descriptive)
-- Performing cohort analysis to measure monthly retention
+- Customer retention
+- Repeat purchase behavior
+- Sustainable lifetime value
+- Efficient marketing spend
 
-The objective is to build a **production-style analytics system**, not just a dashboard.
+This project analyzes customer behavior using a production-style SQL architecture to answer:
+
+- How much revenue comes from new vs existing customers?
+- How strong is month-over-month retention?
+- How do cohorts behave over time?
+- Are discounts contributing to sustainable revenue?
+- Is marketing spend proportionate to revenue?
+
+The objective is to simulate how analytics systems are built in real production environments — not just create dashboards.
 
 ---
 
 ## 2. Architecture Overview
 
-The project follows a layered data architecture:
+The project follows a layered data architecture using PostgreSQL.
 
 ### Raw Layer (`raw` schema)
-- Exact copy of source CSV files
+- Exact copy of source CSV/Excel files
 - No transformations applied
-- Preserves full traceability to source data
+- Full traceability to source data
 
 ### Staging Layer (`staging` schema)
 - Data type normalization
 - Date parsing (MM/DD/YYYY → DATE)
-- Text cleaning & standardization
-- Numeric conversions (GST %, discount %)
-- Month normalization for discount joins
+- Text cleaning and trimming
+- GST percentage normalization
+- Discount percentage normalization
+- Month number standardization for joins
 
 ### Mart Layer (`mart` schema)
-- Dimensional star schema modeling
-- Physical fact and dimension tables
-- Deterministic invoice value computation
-- Explicit grain enforcement and key constraints
 
-**Dimensions**
+Dimensional star schema designed for analytical consumption.
+
+#### Dimensions
 - `dim_date`
 - `dim_customer`
 - `dim_product`
 
-**Facts**
-- `fact_sales_line` (line-item level)
-- `fact_orders` (order-level aggregation)
+#### Fact Tables
+- `fact_sales_line`
+  - Grain: 1 row = 1 SKU within a transaction
+  - Invoice value computed at line level
+  - Explicit numeric precision (`numeric(18,2)`)
 
-### KPI Layer (SQL Views – In Progress)
-- Monthly revenue analysis
-- Retention calculations
-- New vs existing customer revenue
-- Cohort analysis
-- Marketing efficiency metrics
+- `fact_orders`
+  - Grain: 1 row = 1 transaction_id
+  - Aggregated from line-level fact
+  - Deterministic revenue rollups
+
+### KPI Layer (SQL Views)
+
+Business-facing views built on top of mart tables:
+
+- `vw_monthly_revenue_new_vs_existing`
+- `vw_cohort_retention`
+- `vw_cohort_retention_rates` (0–6 month window)
+
+All KPI logic is centralized in SQL to avoid duplication in Power BI.
 
 ---
 
 ## 3. Dataset Description
 
-Source: Kaggle –  
+Source: Kaggle  
 [Marketing Insights for E-Commerce Company](https://www.kaggle.com/datasets/rishikumarrajvansh/marketing-insights-for-e-commerce-company/data)
 
 Transaction period:  
 **2019-01-01 to 2019-12-31**
 
-Total sales rows:  
-**52,924 line items**
+Dataset scale:
 
-Distinct customers:  
-**1,468**
-
-Distinct transactions:  
-**25,061**
+- 52,924 line items
+- 25,061 distinct transactions
+- 1,468 distinct customers
+- 20 product categories
+- 365 marketing spend records
 
 ---
 
-## 4. Data Grain
+## 4. Data Grain & Modeling Decisions
 
-The primary fact table is modeled at the **transaction line level**:
+Primary fact table:
 
-> 1 row = 1 product SKU within a specific transaction
+> 1 row = 1 product SKU within a transaction
 
-This ensures:
-- No revenue double-counting
-- Correct aggregation logic
-- Product-level flexibility
-- Clean order-level rollups
-
-A secondary fact table (`fact_orders`) aggregates to:
+Secondary aggregation:
 
 > 1 row = 1 transaction_id
 
+This ensures:
+
+- No revenue double counting
+- Product-level flexibility
+- Correct order-level rollups
+- Scalable dimensional modeling
+
 ---
 
-## 5. Invoice Value Logic
+## 5. Invoice Value Logic (Centralized in SQL)
 
-Invoice Value is computed at line level inside the mart layer:
+Invoice value is calculated at the line-item level:
+
 
 Invoice Value = ((Quantity × Avg_Price) × (1 - Discount_pct) × (1 + GST)) + Delivery_Charges
 
+
 Business rules enforced:
 
-- Discounts apply only when coupon_status indicates usage.
-- GST is applied at the product category level.
-- Null handling ensures deterministic revenue calculation.
+- Discounts apply only when coupon status indicates usage.
+- GST is applied at product category level.
+- Numeric precision explicitly controlled (`numeric(18,2)`).
+- Null-safe calculations ensure deterministic revenue.
 
-This logic is centralized in SQL to prevent duplication in the BI layer.
+Revenue totals reconciled after mart rebuild:
+
+**Total Revenue: 4,877,837.47**
 
 ---
 
 ## 6. Data Quality Handling
 
-During modeling, it was identified that some `transaction_id` values mapped to multiple `customer_id`s in the source dataset.
+During modeling, it was discovered that some `transaction_id` values mapped to multiple `customer_id`s in the raw data.
 
-To preserve the intended order-level grain:
+To preserve order-level grain:
 
-- A deterministic customer assignment rule was applied (`MIN(customer_id)`).
-- A flag (`is_customer_id_conflicted`) was added to identify affected transactions.
-- Revenue totals were reconciled to ensure integrity.
+- A deterministic rule was applied: `MIN(customer_id)`
+- A flag `is_customer_id_conflicted` identifies affected transactions
+- All KPI views exclude conflicted transactions where necessary
+- Revenue totals were reconciled post-adjustment
 
-This approach maintains model consistency while preserving auditability.
-
----
-
-## 7. Key Business Metrics
-
-- Revenue (Invoice Value)
-- Repeat Purchase Rate
-- Monthly Retention
-- Cohort Retention Matrix
-- New vs Existing Revenue Split
-- Average Order Value (AOV)
-- Marketing Spend as % of Revenue
-- Revenue by Category
-- Discount Impact Analysis
+This mirrors real-world production issue handling.
 
 ---
 
-## 8. Design Principles
+## 7. Implemented KPI Views
+
+### 1. Monthly Revenue (New vs Existing)
+
+- Customer classification based on first purchase month
+- Revenue split by acquisition vs retention
+- Order count and AOV included
+
+### 2. Cohort Retention Matrix
+
+- Cohort defined by first purchase month
+- Retention measured as % of active customers
+- Window capped at 6 months for comparability
+- Long-format output optimized for BI pivot visuals
+
+---
+
+## 8. Power BI Integration
+
+Power BI connects directly to PostgreSQL (Import mode).
+
+- No business logic reimplemented in DAX
+- SQL views used for KPI consumption
+- Star schema relationships maintained
+- Numeric precision issues resolved at database layer
+
+This separation ensures:
+
+- Maintainability
+- Performance
+- Architectural clarity
+- Minimal BI-layer computation
+
+---
+
+## 9. Design Principles
 
 This project emphasizes:
 
-- Clear separation of data layers
-- Controlled transformation logic
+- Clear separation of layers
 - Explicit grain declaration
-- Dimensional modeling best practices
-- Deterministic business logic in the data layer
-- Avoiding over-computation in BI tools
-- Reproducible SQL pipeline
+- Deterministic revenue logic
+- Centralized business rules in SQL
+- Minimal BI over-computation
+- Reproducibility
+- Production-aware modeling
 
-The objective is to simulate how analytics systems are designed in real-world production environments.
+The goal is to demonstrate systems thinking, not just query writing.
 
 ---
 
-## 9. Tools Used
+## 10. Tools Used
 
-- PostgreSQL (Data modeling & SQL transformations)
+- PostgreSQL 18
 - pgAdmin 4
-- Power BI (Visualization layer)
-- GitHub (Documentation & version control)
+- Power BI Desktop (Live DB connection)
+- GitHub
 
 ---
 
-## 10. Project Status
+## 11. Project Status
 
 ✅ Raw ingestion completed  
-✅ Staging layer completed  
+✅ Staging layer implemented  
 ✅ Mart star schema implemented  
-🔄 KPI views under development  
-🔄 Dashboard development upcoming  
+✅ KPI views implemented  
+✅ Power BI connected live to PostgreSQL  
+🔄 Dashboard design in progress  
 
 ---
 
-## 11. Future Enhancements
+## 12. Future Enhancements
 
 - Predictive CLV modeling
 - Churn probability modeling
-- Marketing attribution analysis
-- Performance indexing simulation
-- Automated data validation layer
+- Marketing attribution modeling
+- Indexing & performance simulation
+- Automated data validation checks
 
 ---
 
-*Project by [EstebanSP23](https://github.com/EstebanSP23) – Building a job-ready data analytics portfolio*
+*Project by [EstebanSP23](https://github.com/EstebanSP23) – Building a production-ready data analytics portfolio*
