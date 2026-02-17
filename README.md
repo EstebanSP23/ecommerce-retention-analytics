@@ -1,7 +1,6 @@
 # Customer Retention & Revenue Sustainability Analysis  
 ### Production-Style SQL Analytics Pipeline (PostgreSQL + Power BI)
 
----
 
 ## 1. Business Problem
 
@@ -24,7 +23,6 @@ This project analyzes customer behavior using a production-style SQL architectur
 
 The objective is to simulate how analytics systems are built in real production environments — not just create dashboards.
 
----
 
 ## 2. Architecture Overview
 
@@ -73,7 +71,6 @@ Business-facing views built on top of mart tables:
 
 All KPI logic is centralized in SQL to avoid duplication in Power BI.
 
----
 
 ## 3. Dataset Description
 
@@ -91,7 +88,6 @@ Dataset scale:
 - 20 product categories
 - 365 marketing spend records
 
----
 
 ## 4. Data Grain & Modeling Decisions
 
@@ -110,7 +106,6 @@ This ensures:
 - Correct order-level rollups
 - Scalable dimensional modeling
 
----
 
 ## 5. Invoice Value Logic (Centralized in SQL)
 
@@ -131,7 +126,6 @@ Revenue totals reconciled after mart rebuild:
 
 **Total Revenue: 4,877,837.47**
 
----
 
 ## 6. Data Quality Handling
 
@@ -146,7 +140,6 @@ To preserve order-level grain:
 
 This mirrors real-world production issue handling.
 
----
 
 ## 7. Implemented KPI Views
 
@@ -163,7 +156,6 @@ This mirrors real-world production issue handling.
 - Window capped at 6 months for comparability
 - Long-format output optimized for BI pivot visuals
 
----
 
 ## 8. Power BI Integration
 
@@ -181,7 +173,6 @@ This separation ensures:
 - Architectural clarity
 - Minimal BI-layer computation
 
----
 
 ## 9. Design Principles
 
@@ -197,7 +188,6 @@ This project emphasizes:
 
 The goal is to demonstrate systems thinking, not just query writing.
 
----
 
 ## 10. Tools Used
 
@@ -206,7 +196,6 @@ The goal is to demonstrate systems thinking, not just query writing.
 - Power BI Desktop (Live DB connection)
 - GitHub
 
----
 
 ## 11. Project Status
 
@@ -217,7 +206,6 @@ The goal is to demonstrate systems thinking, not just query writing.
 ✅ Power BI connected live to PostgreSQL  
 🔄 Dashboard design in progress  
 
----
 
 ## 12. Future Enhancements
 
