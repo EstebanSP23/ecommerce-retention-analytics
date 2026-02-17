@@ -109,3 +109,14 @@ FROM base b
 JOIN cohort_size cs
   ON cs.cohort_month = b.cohort_month
 ORDER BY b.cohort_month, b.month_index;
+
+-- ---------- Execuitve KPIs ----------
+CREATE OR REPLACE VIEW mart.vw_exec_kpis AS
+SELECT
+    COUNT(DISTINCT transaction_id) AS total_orders,
+    COUNT(DISTINCT customer_id) AS unique_customers,
+    ROUND(SUM(order_revenue), 2) AS total_revenue,
+    ROUND(AVG(order_revenue), 2) AS avg_order_value
+FROM mart.fact_orders
+WHERE is_customer_id_conflicted = FALSE;
+
