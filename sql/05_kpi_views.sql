@@ -19,20 +19,20 @@ orders_enriched AS (
         o.customer_id,
         o.transaction_date,
         o.order_revenue,
-        d.year_month,
+        DATE_TRUNC('month', o.transaction_date)::date AS month_start_date,
+        TO_CHAR(o.transaction_date, 'YYYY-MM') AS year_month,
         CASE
             WHEN DATE_TRUNC('month', o.transaction_date) = DATE_TRUNC('month', fp.first_purchase_date)
                 THEN 'New'
             ELSE 'Existing'
         END AS customer_type
     FROM mart.fact_orders o
-    JOIN mart.dim_date d
-        ON d.date = o.transaction_date
     JOIN first_purchase fp
         ON fp.customer_id = o.customer_id
     WHERE o.is_customer_id_conflicted = FALSE
 )
 SELECT
+    month_start_date,
     year_month,
     customer_type,
     COUNT(DISTINCT customer_id)    AS customers,
@@ -40,8 +40,8 @@ SELECT
     ROUND(SUM(order_revenue), 2) AS revenue,
     ROUND(AVG(order_revenue), 2) AS avg_order_value
 FROM orders_enriched
-GROUP BY year_month, customer_type
-ORDER BY year_month, customer_type;
+GROUP BY month_start_date, year_month, customer_type
+ORDER BY month_start_date, customer_type;
 
 -- ---------- Cohort retention (customer-based) ----------
 CREATE OR REPLACE VIEW mart.vw_cohort_retention AS
