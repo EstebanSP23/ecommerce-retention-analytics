@@ -135,3 +135,26 @@ GROUP BY transaction_id;
 ALTER TABLE mart.fact_orders
 ADD CONSTRAINT pk_fact_orders
 PRIMARY KEY (transaction_id);
+
+-- ---------- marketing_daily ----------
+DROP TABLE IF EXISTS mart.fact_marketing_daily;
+
+CREATE TABLE mart.fact_marketing_daily AS
+SELECT
+    s.spend_date::date AS spend_date,
+    'Offline'::text    AS channel,
+    ROUND(s.offline_spend, 2)::numeric(18,2) AS spend
+FROM staging.stg_marketing_spend s
+
+UNION ALL
+
+SELECT
+    s.spend_date::date AS spend_date,
+    'Online'::text     AS channel,
+    ROUND(s.online_spend, 2)::numeric(18,2) AS spend
+FROM staging.stg_marketing_spend s;
+
+ALTER TABLE mart.fact_marketing_daily
+ADD CONSTRAINT pk_fact_marketing_daily
+PRIMARY KEY (spend_date, channel);
+
