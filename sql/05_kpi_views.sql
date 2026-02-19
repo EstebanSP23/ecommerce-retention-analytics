@@ -136,4 +136,31 @@ FROM mart.vw_cohort_retention_rates
 WHERE month_index = 1
 ORDER BY cohort_month;
 
+-- ---------- Monthly Marketing Efficiency ----------
+CREATE OR REPLACE VIEW mart.vw_monthly_marketing_efficiency AS
+WITH revenue_monthly AS (
+    SELECT
+        DATE_TRUNC('month', transaction_date)::date AS month_start_date,
+        ROUND(SUM(order_revenue), 2)::numeric(18,2) AS revenue
+    FROM mart.fact_orders
+    WHERE is_customer_id_conflicted = FALSE
+    GROUP BY 1
+),
+spend_monthly AS (
+    SELECT
+        DATE_TRUNC('month', spend_date)::date AS month_start_date,
+        ROUND(SUM(spend), 2)::numeric(18,2) AS marketing_spend
+    FROM mart.fact_marketing_daily
+    GROUP BY 1
+)
+SELECT
+    r.month_start_date,
+    TO_CHAR(r.month_start_date, 'Mon YYYY') AS month_label_en,
+    r.revenue,
+    s.marketing_spend,
+    ROUND(r.revenue / NULLIF(s.marketing_spend, 0), 2) AS roas
+FROM revenue_monthly r
+LEFT JOIN spend_monthly s
+  ON s.month_start_date = r.month_start_date
+ORDER BY r.month_start_date;
 
