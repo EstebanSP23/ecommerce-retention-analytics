@@ -164,3 +164,15 @@ LEFT JOIN spend_monthly s
   ON s.month_start_date = r.month_start_date
 ORDER BY r.month_start_date;
 
+-- ---------- Monthly Marketing Summary ----------
+CREATE OR REPLACE VIEW mart.vw_marketing_summary AS
+SELECT
+    ROUND(SUM(revenue), 2) AS total_revenue,
+    ROUND(SUM(marketing_spend), 2) AS total_marketing_spend,
+    ROUND(
+        SUM(revenue) / NULLIF(SUM(marketing_spend), 0),
+        2
+    ) AS overall_roas
+FROM mart.vw_monthly_marketing_efficiency;
+
+
