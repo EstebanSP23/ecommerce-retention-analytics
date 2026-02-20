@@ -1,7 +1,6 @@
 # Customer Retention & Revenue Sustainability Analysis  
 ### Production-Style SQL Analytics Pipeline (PostgreSQL + Power BI)
 
----
 
 ## 1. Business Problem
 
@@ -24,7 +23,6 @@ This project analyzes customer behavior using a production-style SQL architectur
 
 The objective is to simulate how analytics systems are built in real production environments — not just create dashboards.
 
----
 
 ## 2. Architecture Overview
 
@@ -79,7 +77,6 @@ Business-facing views built on top of mart tables (KPI logic centralized in SQL 
 - `vw_monthly_marketing_efficiency` *(monthly revenue vs spend + ROAS)*
 - `vw_marketing_summary` *(overall ROAS = total revenue / total spend)*
 
----
 
 ## 3. Dataset Description
 
@@ -97,7 +94,6 @@ Dataset scale:
 - 20 product categories
 - 365 marketing spend records (daily online + offline)
 
----
 
 ## 4. Data Grain & Modeling Decisions
 
@@ -125,7 +121,6 @@ This ensures:
 - Traceability to source daily spend
 - Clean monthly rollups for ROAS and efficiency trending
 
----
 
 ## 5. Invoice Value Logic (Centralized in SQL)
 
@@ -144,7 +139,6 @@ Revenue totals reconciled after mart rebuild:
 
 **Total Revenue: 4,877,837.47**
 
----
 
 ## 6. Data Quality Handling
 
@@ -163,7 +157,6 @@ Conflict counts (transactions):
 
 This mirrors real-world production issue handling (flagging, isolating, and controlling downstream impact).
 
----
 
 ## 7. Implemented KPI Views
 
@@ -191,7 +184,6 @@ All sourced from `vw_exec_kpis` and **exclude conflicted transactions**.
 - Monthly revenue vs spend with ROAS (`vw_monthly_marketing_efficiency`)
 - Overall ROAS calculated correctly as **total revenue / total spend** (`vw_marketing_summary`)
 
----
 
 ## 8. Power BI Integration
 
@@ -210,7 +202,6 @@ This separation ensures:
 - Architectural clarity
 - Minimal BI-layer computation
 
----
 
 ## 9. Dashboard Design (MVP)
 
@@ -224,7 +215,6 @@ This separation ensures:
 - ROAS Trend (`vw_monthly_marketing_efficiency`)
 - Revenue vs Marketing Spend (combo chart) (`vw_monthly_marketing_efficiency`)
 
----
 
 ## 10. Design Principles
 
@@ -240,7 +230,6 @@ This project emphasizes:
 
 The goal is to demonstrate systems thinking, not just query writing.
 
----
 
 ## 11. Tools Used
 
@@ -249,7 +238,6 @@ The goal is to demonstrate systems thinking, not just query writing.
 - Power BI Desktop (Import mode)
 - GitHub
 
----
 
 ## 12. Project Status
 
@@ -262,7 +250,6 @@ The goal is to demonstrate systems thinking, not just query writing.
 ✅ MVP dashboard pages drafted (Executive Summary + Marketing Efficiency)  
 🔄 Additional analytical pages in progress  
 
----
 
 ## 13. Future Enhancements
 
@@ -272,6 +259,5 @@ The goal is to demonstrate systems thinking, not just query writing.
 - Indexing & performance simulation
 - Automated data validation checks
 
----
 
 *Project by [EstebanSP23](https://github.com/EstebanSP23) – Building a production-ready data analytics portfolio*
