@@ -186,3 +186,25 @@ SELECT
     ROUND(AVG(retention_pct), 2) AS avg_month1_retention
 FROM mart.vw_cohort_month_1
 GROUP BY period_group;
+
+-- ---------- Customer Lifetime Stats ----------
+CREATE OR REPLACE VIEW mart.vw_customer_lifetime_stats AS
+SELECT
+    customer_id,
+    COUNT(transaction_id) AS total_orders,
+    ROUND(SUM(order_revenue), 2) AS lifetime_revenue
+FROM mart.fact_orders
+WHERE is_customer_id_conflicted = FALSE
+GROUP BY customer_id;
+
+-- ---------- Repeat Revenue Split ----------
+CREATE OR REPLACE VIEW mart.vw_repeat_revenue_split AS
+SELECT
+    CASE
+        WHEN total_orders = 1 THEN 'One-Time Buyers'
+        ELSE 'Repeat Buyers'
+    END AS customer_type,
+    ROUND(SUM(lifetime_revenue), 2) AS revenue
+FROM mart.vw_customer_lifetime_stats
+GROUP BY customer_type;
+
