@@ -8,18 +8,18 @@ E-commerce companies must balance **customer acquisition and retention** to achi
 
 While acquisition drives short-term revenue spikes, long-term profitability depends on:
 
-- Customer retention
-- Repeat purchase behavior
-- Sustainable lifetime value
-- Efficient marketing spend
+- Customer retention  
+- Repeat purchase behavior  
+- Sustainable lifetime value  
+- Efficient marketing spend  
 
 This project analyzes customer behavior using a production-style SQL architecture to answer:
 
 - How much revenue comes from new vs existing customers?
-- How strong is month-over-month retention?
+- How strong is early and lifecycle retention?
 - How do cohorts behave over time?
-- Are discounts contributing to sustainable revenue?
-- Is marketing spend proportionate to revenue?
+- Is marketing spend economically efficient?
+- Is revenue concentrated among high-frequency buyers?
 
 The objective is to simulate how analytics systems are built in real production environments — not just create dashboards.
 
@@ -63,19 +63,23 @@ Dimensional star schema designed for analytical consumption.
 
 - `fact_marketing_daily`
   - Grain: 1 row = 1 day per channel (Online/Offline)
-  - Long-format marketing spend (`spend` + `channel`) for BI flexibility
+  - Long-format marketing spend (`spend` + `channel`)
   - Explicit numeric precision (`numeric(18,2)`)
 
 ### KPI Layer (SQL Views)
-Business-facing views built on top of mart tables (KPI logic centralized in SQL to avoid duplication in Power BI):
 
-- `vw_exec_kpis` *(operational executive KPIs)*
-- `vw_monthly_revenue_new_vs_existing` *(includes `month_start_date` + English `month_label_en`)*
+Business-facing views built on top of mart tables.  
+All KPI logic is centralized in SQL to ensure consistency and avoid duplication in Power BI.
+
+- `vw_exec_kpis`
+- `vw_monthly_revenue_new_vs_existing`
 - `vw_cohort_retention`
-- `vw_cohort_retention_rates` *(0–6 month window)*
-- `vw_month1_retention_trend` *(English month label + proper sorting)*
-- `vw_monthly_marketing_efficiency` *(monthly revenue vs spend + ROAS)*
-- `vw_marketing_summary` *(overall ROAS = total revenue / total spend)*
+- `vw_cohort_retention_rates`
+- `vw_month1_retention_trend`
+- `vw_monthly_marketing_efficiency`
+- `vw_marketing_summary`
+- `vw_customer_lifetime_stats`
+- `vw_customer_order_buckets`
 
 
 ## 3. Dataset Description
@@ -88,11 +92,11 @@ Transaction period:
 
 Dataset scale:
 
-- 52,924 line items
-- 25,061 distinct transactions
-- 1,468 distinct customers
-- 20 product categories
-- 365 marketing spend records (daily online + offline)
+- 52,924 line items  
+- 25,061 distinct transactions  
+- 1,468 distinct customers  
+- 20 product categories  
+- 365 marketing spend records  
 
 
 ## 4. Data Grain & Modeling Decisions
@@ -105,21 +109,17 @@ Secondary aggregation:
 
 > 1 row = 1 transaction_id
 
-This ensures:
-
-- No revenue double counting
-- Product-level flexibility
-- Correct order-level rollups
-- Scalable dimensional modeling
-
 Marketing spend modeling:
 
 > 1 row = 1 day per channel (Online/Offline)
 
 This ensures:
 
-- Traceability to source daily spend
-- Clean monthly rollups for ROAS and efficiency trending
+- No revenue double counting  
+- Product-level flexibility  
+- Correct order-level rollups  
+- Clean monthly efficiency calculations  
+- Scalable dimensional modeling  
 
 
 ## 5. Invoice Value Logic (Centralized in SQL)
@@ -130,113 +130,120 @@ Invoice value is calculated at the line-item level:
 
 Business rules enforced:
 
-- Discounts apply only when coupon status indicates usage.
-- GST is applied at product category level.
-- Numeric precision explicitly controlled (`numeric(18,2)`).
-- Null-safe calculations ensure deterministic revenue.
+- Discounts apply only when coupon status indicates usage  
+- GST applied at product category level  
+- Explicit numeric precision (`numeric(18,2)`)  
+- Null-safe deterministic calculations  
 
-Revenue totals reconciled after mart rebuild:
+Total Revenue:
 
-**Total Revenue: 4,877,837.47**
+**4,877,837.47**
 
 
 ## 6. Data Quality Handling
 
-During modeling, it was discovered that some `transaction_id` values mapped to multiple `customer_id`s in the raw data.
+A data integrity issue was identified:
 
-To preserve order-level grain:
+Some `transaction_id` values mapped to multiple `customer_id`s.
 
-- A deterministic rule was applied: `MIN(customer_id)`
-- A flag `is_customer_id_conflicted` identifies affected transactions
-- KPI views exclude conflicted transactions where necessary (especially customer-behavior metrics)
+Resolution:
 
-Conflict counts (transactions):
+- Deterministic rule: `MIN(customer_id)`
+- Flag added: `is_customer_id_conflicted`
+- Behavioral KPIs exclude conflicted transactions
 
-- `TRUE`: 1,319
-- `FALSE`: 23,742
+Conflict distribution:
 
-This mirrors real-world production issue handling (flagging, isolating, and controlling downstream impact).
+- `TRUE`: 1,319  
+- `FALSE`: 23,742  
 
-
-## 7. Implemented KPI Views
-
-### 1. Executive Operational KPIs
-- Total Revenue
-- Total Orders
-- Unique Customers
-- AOV  
-All sourced from `vw_exec_kpis` and **exclude conflicted transactions**.
-
-### 2. Monthly Revenue (New vs Existing)
-- Customer classification based on first purchase month
-- Revenue split by acquisition vs retention
-- Order count and AOV included
-- Uses `month_start_date` and an English month label for BI-friendly axes
-
-### 3. Cohort Retention
-- Cohort defined by first purchase month
-- Retention measured as % of active customers
-- Window capped at 6 months for comparability
-- Month 1 retention trend view built for executive-level monitoring
-
-### 4. Marketing Efficiency (ROAS)
-- Daily spend modeled in mart (`fact_marketing_daily`)
-- Monthly revenue vs spend with ROAS (`vw_monthly_marketing_efficiency`)
-- Overall ROAS calculated correctly as **total revenue / total spend** (`vw_marketing_summary`)
+This mirrors real-world production issue handling.
 
 
-## 8. Power BI Integration
+## 7. Key Findings
 
-Power BI connects directly to PostgreSQL (Import mode).
+### 1️⃣ Marketing Efficiency
 
-- No business logic reimplemented in DAX (KPI logic centralized in SQL)
-- SQL views used for KPI consumption
-- Star schema relationships maintained
-- Numeric precision issues resolved at database layer
-- Month label sorting handled using “Sort by Column” (label sorted by date)
+- Overall ROAS: **2.51**
+- Marketing spend consistently generates >2x revenue
+- Efficiency is stable with moderate volatility
 
-This separation ensures:
+### 2️⃣ Retention Behavior
 
-- Maintainability
-- Performance
-- Architectural clarity
-- Minimal BI-layer computation
+- Month 1 retention improved modestly in the second half (+8% relative lift)
+- Lifecycle retention stabilizes after early drop
+- Retention improvement is incremental, not transformational
+
+### 3️⃣ Customer Value & Revenue Concentration
+
+- **93% of customers are repeat buyers**
+- **99.61% of revenue comes from repeat buyers**
+- Average orders per customer: **17.74**
+- 28.9% of customers (21+ orders) generate ~69% of revenue
+
+This indicates a **loyalty-core driven model** with strong revenue concentration among high-frequency buyers.
 
 
-## 9. Dashboard Design (MVP)
+## 8. Important Dataset Note
 
-### Executive Summary Page (CEO-level)
-- KPI Cards: Revenue, Orders, Customers, AOV (`vw_exec_kpis`)
-- Revenue Trend: New vs Existing (2-line chart) (`vw_monthly_revenue_new_vs_existing`)
-- Retention Health: Month 1 retention trend (`vw_month1_retention_trend`)
+The dataset shows unusually high repeat behavior:
 
-### Marketing Efficiency Page
-- KPI Card: Overall ROAS (`vw_marketing_summary`)
-- ROAS Trend (`vw_monthly_marketing_efficiency`)
-- Revenue vs Marketing Spend (combo chart) (`vw_monthly_marketing_efficiency`)
+- 93% repeat customers  
+- 99.6% revenue from repeat buyers  
+- 17.74 average orders per customer  
+
+This is atypical for standard e-commerce and may reflect:
+
+- High-frequency retail characteristics  
+- Subscription-like behavior  
+- Synthetic dataset structure  
+
+This context is important when interpreting retention metrics.
+
+
+## 9. Dashboard Structure (MVP)
+
+### Executive Summary
+- Revenue, Orders, Customers, AOV
+- New vs Existing Revenue Trend
+- Month 1 Retention Trend
+
+### Marketing Efficiency
+- Overall ROAS
+- ROAS Trend
+- Revenue vs Marketing Spend
+
+### Cohort Analysis
+- Month 1 Retention Comparison (First vs Second Half)
+- Cohort Heatmap (Months 1–6)
+- Lifecycle Retention Curve
+
+### Customer Value & Concentration
+- % Repeat Customers
+- % Revenue from Repeat Buyers
+- Orders per Customer Distribution
+- Revenue Concentration by Order Bucket
 
 
 ## 10. Design Principles
 
-This project emphasizes:
+- Clear separation of layers  
+- Explicit grain declaration  
+- Deterministic revenue logic  
+- Centralized KPI definitions  
+- Weighted metric correctness  
+- Minimal BI-layer computation  
+- Production-aware modeling  
 
-- Clear separation of layers
-- Explicit grain declaration
-- Deterministic revenue logic
-- Centralized business rules in SQL
-- Minimal BI over-computation
-- Reproducibility
-- Production-aware modeling
-
-The goal is to demonstrate systems thinking, not just query writing.
+The goal is to demonstrate systems thinking and metric integrity.
 
 
 ## 11. Tools Used
 
-- PostgreSQL 18
-- pgAdmin 4
-- Power BI Desktop (Import mode)
-- GitHub
+- PostgreSQL 18  
+- pgAdmin 4  
+- Power BI Desktop  
+- GitHub  
 
 
 ## 12. Project Status
@@ -244,20 +251,18 @@ The goal is to demonstrate systems thinking, not just query writing.
 ✅ Raw ingestion completed  
 ✅ Staging layer implemented  
 ✅ Mart star schema implemented  
-✅ Marketing mart fact implemented (`fact_marketing_daily`)  
-✅ KPI views implemented (revenue, retention, marketing efficiency)  
-✅ Power BI connected to PostgreSQL  
-✅ MVP dashboard pages drafted (Executive Summary + Marketing Efficiency)  
-🔄 Additional analytical pages in progress  
+✅ Marketing fact modeled  
+✅ KPI views implemented  
+✅ 4 analytical dashboard pages completed  
 
 
 ## 13. Future Enhancements
 
-- Predictive CLV modeling
-- Churn probability modeling
-- Marketing attribution modeling
-- Indexing & performance simulation
-- Automated data validation checks
+- Predictive CLV modeling  
+- Churn probability modeling  
+- Marketing attribution modeling  
+- Performance indexing simulation  
+- Automated validation tests  
 
 
-*Project by [EstebanSP23](https://github.com/EstebanSP23) – Building a production-ready data analytics portfolio*
+*Project by [EstebanSP23](https://github.com/EstebanSP23) – Production-oriented Data Analytics Portfolio*
