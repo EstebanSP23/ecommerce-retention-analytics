@@ -208,3 +208,85 @@ SELECT
 FROM mart.vw_customer_lifetime_stats
 GROUP BY customer_type;
 
+-- ---------- Customer Order Buckets ----------
+CREATE OR REPLACE VIEW mart.vw_customer_order_buckets AS
+WITH bucketed AS (
+    SELECT
+        CASE
+            WHEN total_orders = 1 THEN 1
+            WHEN total_orders BETWEEN 2 AND 3 THEN 2
+            WHEN total_orders BETWEEN 4 AND 5 THEN 3
+            WHEN total_orders BETWEEN 6 AND 10 THEN 4
+            WHEN total_orders BETWEEN 11 AND 20 THEN 5
+            ELSE 6
+        END AS bucket_sort,
+
+        CASE
+            WHEN total_orders = 1 THEN '1 Order'
+            WHEN total_orders BETWEEN 2 AND 3 THEN '2–3 Orders'
+            WHEN total_orders BETWEEN 4 AND 5 THEN '4–5 Orders'
+            WHEN total_orders BETWEEN 6 AND 10 THEN '6–10 Orders'
+            WHEN total_orders BETWEEN 11 AND 20 THEN '11–20 Orders'
+            ELSE '21+ Orders'
+        END AS order_bucket,
+
+        lifetime_revenue
+    FROM mart.vw_customer_lifetime_stats
+),
+
+aggregated AS (
+    SELECT
+        bucket_sort,
+        order_bucket,
+        COUNT(*) AS customer_count,
+        ROUND(SUM(lifetime_revenue), 2) AS revenue
+    FROM bucketed
+    GROUP BY bucket_sort, order_bucket
+)
+
+SELECT
+    bucket_sort,
+    order_bucket,
+    customer_count,
+    revenue,
+    ROUND(
+        customer_count::numeric
+        / SUM(customer_count) OVER (),
+        4
+    ) AS pct_customers,
+    ROUND(
+        revenue
+        / SUM(revenue) OVER (),
+        4
+    ) AS pct_revenue
+FROM aggregated
+ORDER BY bucket_sort;
+
+-- ---------- Customer Repeat Summary ----------
+CREATE OR REPLACE VIEW mart.vw_customer_repeat_summary AS
+SELECT
+    COUNT(*) AS total_customers,
+    SUM(CASE WHEN total_orders = 1 THEN 1 ELSE 0 END) AS one_time_customers,
+    SUM(CASE WHEN total_orders > 1 THEN 1 ELSE 0 END) AS repeat_customers,
+    ROUND(
+        SUM(CASE WHEN total_orders > 1 THEN 1 ELSE 0 END)::numeric
+        / COUNT(*),
+        4
+    ) AS pct_repeat_customers
+FROM mart.vw_customer_lifetime_stats;
+
+-- ---------- Repeat Revenue Summary ----------
+CREATE OR REPLACE VIEW mart.vw_repeat_revenue_summary AS
+SELECT
+    ROUND(
+        SUM(CASE WHEN total_orders > 1 THEN lifetime_revenue ELSE 0 END)
+        / SUM(lifetime_revenue),
+        4
+    ) AS pct_revenue_repeat
+FROM mart.vw_customer_lifetime_stats;
+
+-- ---------- Customer Average Orders ----------
+CREATE OR REPLACE VIEW mart.vw_customer_avg_orders AS
+SELECT
+    ROUND(AVG(total_orders), 2) AS avg_orders_per_customer
+FROM mart.vw_customer_lifetime_stats;
